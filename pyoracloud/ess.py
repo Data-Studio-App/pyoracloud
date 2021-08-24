@@ -63,6 +63,10 @@ class EnterpriseScheduler:
     def __str__(self) -> str:
         return f"{self.__class__.__name__} (Url: {self.url}, Username: {self.username}, Password: ****)"
 
+    def __display_message(self, message: str) -> None:
+        if self.verbose:
+            print(message)
+
     @property
     def progress_status(self) -> List[str]:
         return ["WAIT", "BLOCKED", "RUNNING", "PAUSED", "COMPLETED", "READY"]
@@ -91,24 +95,40 @@ class EnterpriseScheduler:
         return (request_id, job_status)
 
     def submit(self, job: SchedulerJob) -> str:
+
+        self.__display_message(f"Submitting {job}")
+        self.__display_message(f"Url:  {self.erp_integration}")
         ess_response = self.request.post(
             self.erp_integration, data=json.dumps(job.payload)
         )
+
+        self.__display_message(f"Response: {ess_response.status_code}")
         ess_response.raise_for_status()
+
         request_id = ess_response.json()["ReqstId"]
+        self.__display_message(f"Request Id : {request_id}")
+
         return request_id
 
     def monitor(self, request_id: str) -> str:
-        ess_monitor_url = self.get_job_monitor_url(request_id)
-        request_status = None
-        progress_status = ["WAIT", "BLOCKED", "RUNNING", "PAUSED", "COMPLETED", "READY"]
 
+        ess_monitor_url = self.get_job_monitor_url(request_id)
+
+        self.__display_message(f"Start monitoring request id {request_id}")
+        self.__display_message(f"Url:  {ess_monitor_url}")
+        self.__display_message(f"Max poll: {self.max_poll}")
+        self.__display_message(f"Poll interval: {self.poll_interval} sec")
+
+        request_status = None
         for _ in range(self.max_poll):
             time.sleep(self.poll_interval)
             monitor_response = self.request.get(ess_monitor_url)
             monitor_response.raise_for_status()
             request_status = monitor_response.json()["items"][0]["RequestStatus"]
-            if request_status.upper() not in progress_status:
+
+            self.__display_message(f"{monitor_response} {request_status}")
+
+            if request_status.upper() not in self.progress_status:
                 break
         else:
             raise exceptions.LongRunningJobError(request_id)
@@ -117,18 +137,3 @@ class EnterpriseScheduler:
             raise exceptions.ScheduledJobError(request_id, request_status)
 
         return request_status
-
-
-if __name__ == "__main__":
-    ess_job = SchedulerJob("pack", "defn")
-    ess_job.add_parameter("1")
-    ess_job.add_parameter(None)
-    ess_job.add_parameter(1)
-    print(ess_job.payload)
-    print(ess_job)
-
-    sch = EnterpriseScheduler("https//url", "username", "pswd")
-    print(ess_job.__repr__())
-    print(sch.__repr__())
-
-    # raise exceptions.ScheduledJobError("123", "ER")
