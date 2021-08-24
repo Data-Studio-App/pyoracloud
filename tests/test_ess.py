@@ -130,3 +130,28 @@ def test_enterprise_scheduler_erp_integration_url():
     actual_url = f"{url}/fscmRestApi/resources/11.13.18.05/erpintegrations"
 
     assert actual_url == schdlr.erp_integration
+
+
+def test_enterprise_scheduler_request() -> None:
+    from pyoracloud.ess import EnterpriseScheduler
+
+    url = "https://server.oraclecloud.com"
+    username = "username"
+    password = "password"
+    schdlr = EnterpriseScheduler(url, username, password)
+    assert (
+        schdlr.request.headers["Authorization"] == f"Basic {username}:{password}"
+        and schdlr.request.headers["content-type"] == "application/json"
+    )
+
+
+def test_enterprise_scheduler_monitor_url() -> None:
+    from pyoracloud.ess import EnterpriseScheduler
+
+    url = "https://server.oraclecloud.com"
+    schdlr = EnterpriseScheduler(url, "x", "x")
+    request_id = "123456"
+    actual_url = schdlr.get_job_monitor_url(request_id)
+    expected_url = f"{schdlr.erp_integration}?finder=ESSJobStatusRF;requestId={request_id}&onlyData=True&fields=RequestStatus"
+
+    assert actual_url == expected_url
