@@ -139,10 +139,7 @@ def test_enterprise_scheduler_request() -> None:
     username = "username"
     password = "password"
     schdlr = EnterpriseScheduler(url, username, password)
-    assert (
-        schdlr.request.headers["Authorization"] == f"Basic {username}:{password}"
-        and schdlr.request.headers["content-type"] == "application/json"
-    )
+    assert schdlr.request.headers["content-type"] == "application/json"
 
 
 def test_enterprise_scheduler_monitor_url() -> None:

@@ -4,6 +4,7 @@ import time
 
 import requests
 from requests.sessions import Session
+from requests.auth import HTTPBasicAuth
 
 try:
     from . import exceptions
@@ -57,6 +58,9 @@ class EnterpriseScheduler:
         self.max_poll: int = 500
         self.poll_interval: int = 10  # Sec
 
+        self.__run_request_id: str = None
+        self.__run_status: str = None
+
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}("{self.url}", "{self.username}", "{self.password}")'
 
@@ -66,6 +70,14 @@ class EnterpriseScheduler:
     def __display_message(self, message: str) -> None:
         if self.verbose:
             print(message)
+
+    @property
+    def run_status(self) -> str:
+        return self.__run_status
+
+    @property
+    def run_request_id(self) -> str:
+        return self.__run_request_id
 
     @property
     def progress_status(self) -> List[str]:
@@ -78,9 +90,9 @@ class EnterpriseScheduler:
     @property
     def request(self) -> Session:
         cloud_request = requests.Session()
+        cloud_request.auth = (self.username, self.password)
         cloud_request.headers.update(
             {
-                "Authorization": f"Basic {self.username}:{self.password}",
                 "content-type": "application/json",
             }
         )
@@ -89,15 +101,16 @@ class EnterpriseScheduler:
     def get_job_monitor_url(self, request_id: str) -> str:
         return f"{self.erp_integration}?finder=ESSJobStatusRF;requestId={request_id}&onlyData=True&fields=RequestStatus"
 
-    def run(self, job: SchedulerJob) -> Tuple[str, str]:
-        request_id = self.submit(job)
-        job_status = self.monitor(request_id)
-        return (request_id, job_status)
+    def run(self, job: SchedulerJob) -> bool:
+        self.__run_request_id = self.submit(job)
+        self.__run_status = self.monitor(self.run_request_id)
+        return True
 
     def submit(self, job: SchedulerJob) -> str:
 
         self.__display_message(f"Submitting {job}")
         self.__display_message(f"Url:  {self.erp_integration}")
+        self.__display_message(f"Payload:  {json.dumps(job.payload)}")
         ess_response = self.request.post(
             self.erp_integration, data=json.dumps(job.payload)
         )
@@ -133,7 +146,10 @@ class EnterpriseScheduler:
         else:
             raise exceptions.LongRunningJobError(request_id)
 
-        if request_status.startswith("ERROR"):
-            raise exceptions.ScheduledJobError(request_id, request_status)
+        self.raise_for_job_status()
 
         return request_status
+
+    def raise_for_job_status(self):
+        if self.request_status.startswith("ERROR"):
+            raise exceptions.ScheduledJobError(self.request_id, self.request_status)
