@@ -1,10 +1,11 @@
-from typing import Dict, Tuple, Union, List
+"""Oracle Cloud Enterprise Schedule Service.
+"""
+from typing import Dict, Union, List
 import json
 import time
 
 import requests
 from requests.sessions import Session
-from requests.auth import HTTPBasicAuth
 
 try:
     from . import exceptions
@@ -21,10 +22,16 @@ class SchedulerJob:
         self.parameters: List[str] = []
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}("{self.package}", "{self.definition}")'
+        ret = self.__class__.__name__
+        ret = f'{ret}("{self.package}", "{self.definition}")'
+        return ret
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} (Package: {self.package}, Definition: {self.definition}, Parameters: {self.parameters})"
+        ret = self.__class__.__name__
+        ret = f"{ret} (Package :{self.package},"
+        ret = f"{ret} Definition :{self.definition},"
+        ret = f"{ret} Parameters : {self.parameters})"
+        return ret
 
     @property
     def ess_parameter(self) -> str:
@@ -62,10 +69,14 @@ class EnterpriseScheduler:
         self.__run_status: str = None
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}("{self.url}", "{self.username}", "{self.password}")'
+        ret = self.__class__.__name__
+        ret = f'{ret}("{self.url}", "{self.username}", "{self.password}")'
+        return ret
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} (Url: {self.url}, Username: {self.username}, Password: ****)"
+        ret = self.__class__.__name__
+        ret = f"{ret} (Url:{self.url}, Username:{self.username}, Password:***)"
+        return ret
 
     def __display_message(self, message: str) -> None:
         if self.verbose:
@@ -99,7 +110,12 @@ class EnterpriseScheduler:
         return cloud_request
 
     def get_job_monitor_url(self, request_id: str) -> str:
-        return f"{self.erp_integration}?finder=ESSJobStatusRF;requestId={request_id}&onlyData=True&fields=RequestStatus"
+        url = self.erp_integration
+        url = f"{url}?finder=ESSJobStatusRF"
+        url = f"{url};requestId={request_id}"
+        url = f"{url}&onlyData=True"
+        url = f"{url}&fields=RequestStatus"
+        return url
 
     def run(self, job: SchedulerJob) -> bool:
         self.__run_request_id = self.submit(job)
@@ -137,8 +153,8 @@ class EnterpriseScheduler:
             time.sleep(self.poll_interval)
             monitor_response = self.request.get(ess_monitor_url)
             monitor_response.raise_for_status()
-            request_status = monitor_response.json()["items"][0]["RequestStatus"]
-
+            items = monitor_response.json()["items"]
+            request_status = items[0]["RequestStatus"]
             self.__display_message(f"{monitor_response} {request_status}")
 
             if request_status.upper() not in self.progress_status:
@@ -152,4 +168,6 @@ class EnterpriseScheduler:
 
     def raise_for_job_status(self):
         if self.request_status.startswith("ERROR"):
-            raise exceptions.ScheduledJobError(self.request_id, self.request_status)
+            request_id = self.request_id
+            request_status = self.requrequest_statusest_id
+            raise exceptions.ScheduledJobError(request_id, request_status)

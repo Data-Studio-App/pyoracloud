@@ -26,13 +26,15 @@ def test_schedule_job_add_parameter() -> None:
     sch_job = ess.SchedulerJob("package", "definition")
     for p in inputParam:
         sch_job.add_parameter(p)
-    assert all(
-        [actual == expected for actual, expected in zip(sch_job.parameters, inputParam)]
-    )
+
+    zipped_params = zip(sch_job.parameters, inputParam)
+    assert all([actual == expected for actual, expected in zipped_params])
 
 
 def test_schedule_job_null_parameter() -> None:
-    """ScheduleJob should return #NULL as parameter when no parameters are added"""
+    """
+    ScheduleJob should return #NULL as parameter when no parameters are added
+    """
     from pyoracloud import ess
 
     sch_job = ess.SchedulerJob("package", "definition")
@@ -47,7 +49,8 @@ def test_schedule_job_one_null_parameter() -> None:
     sch_job.add_parameter(None)
     sch_job.add_parameter("P1")
     sch_job.add_parameter(None)
-    assert sch_job.ess_parameter == f"{ess.ESS_PARAM_NULL},P1,{ess.ESS_PARAM_NULL}"
+    expected = f"{ess.ESS_PARAM_NULL},P1,{ess.ESS_PARAM_NULL}"
+    assert sch_job.ess_parameter == expected
 
 
 def test_schedule_job_payload() -> None:
@@ -88,9 +91,9 @@ def test_enterprise_scheduler_verbose() -> None:
     from pyoracloud.ess import EnterpriseScheduler
 
     schdlr = EnterpriseScheduler("x", "x", "x")
-    assert schdlr.verbose == False
+    assert False if schdlr.verbose else True
     schdlr.verbose = True
-    assert schdlr.verbose == True
+    assert True if schdlr.verbose else False
 
 
 def test_enterprise_scheduler_max_poll() -> None:
@@ -149,6 +152,10 @@ def test_enterprise_scheduler_monitor_url() -> None:
     schdlr = EnterpriseScheduler(url, "x", "x")
     request_id = "123456"
     actual_url = schdlr.get_job_monitor_url(request_id)
-    expected_url = f"{schdlr.erp_integration}?finder=ESSJobStatusRF;requestId={request_id}&onlyData=True&fields=RequestStatus"
+    expected_url = f"{schdlr.erp_integration}"
+    expected_url = f"{expected_url}?finder=ESSJobStatusRF"
+    expected_url = f"{expected_url};requestId={request_id}"
+    expected_url = f"{expected_url}&onlyData=True&fields=RequestStatus"
+    print(actual_url, expected_url)
 
     assert actual_url == expected_url
